@@ -1,0 +1,14 @@
+file_name=$1
+shift
+
+mkdir -p build
+mkdir -p dump
+
+riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 "src/${file_name}.c" -o "build/${file_name}" $@ || { echo "Compilation Failed"; exit 1; }
+
+riscv64-unknown-elf-objdump -S "build/${file_name}" > "dump/${file_name}.asm" || { echo "Failed to dump ${file_name}"; exit 1; }
+
+echo "Successfully compiled src/${file_name}.c to bin/${file_name}"
+echo "Assembly dumped to dump/${file_name}.asm"
+
+exit 0
