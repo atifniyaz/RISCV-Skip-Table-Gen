@@ -2,8 +2,8 @@
 
 import argparse
 
-from parse_elf_obj_dump import parse_elf_obj_dump
-
+from parse_elf_obj_dump import parse_elf_obj_dump, print_section
+import find_sparse_MACs
 
 def arg_parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='A tool to generate a skip table for RISC-V RV32I Base Code')
@@ -15,9 +15,16 @@ def arg_parse() -> argparse.Namespace:
 def run():
     parsed = arg_parse()
 
-    funtion_dict = parse_elf_obj_dump(parsed.elf)
-    # TODO: Find accumulates
+    function_dict, instr_dict = parse_elf_obj_dump(parsed.elf)
 
+    # for pc in instr_dict:
+    #     print(f'{pc:10}   {instr_dict[pc]}')
+    # print(function_dict)
+
+    main_pc = function_dict['main']
+    #parse_instructions(main_pc, instr_dict, {})
+    mac_pcs = find_sparse_MACs.find_accumulates(instr_dict)
+    print(hex(main_pc))
 
 if __name__ == '__main__':
     run()

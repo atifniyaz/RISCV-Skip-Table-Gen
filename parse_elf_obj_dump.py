@@ -8,7 +8,7 @@ def parse_elf_obj_dump(asm_file: io.TextIOWrapper) -> dict:
         next(asm_file)
 
     in_section_flag = False
-    section_dict = {}
+    instr_dict, section_dict = {}, {}
     section_list = []
     section = ('', '')
 
@@ -24,16 +24,19 @@ def parse_elf_obj_dump(asm_file: io.TextIOWrapper) -> dict:
             if len(line) == 0:
                 in_section_flag = False
                 section_name, section_no = section
-                section_dict[section_name] = (section_no, section_list)
+                section_dict[section_name] = int(section_no, 16)
             else:
-                instr = re.match(r'([0-9a-f]*):\t([0-9a-f]*)[\t ]+([a-z]*)\t?([^#]+)?(#[ ]*(.*))?',
+                instr = re.match(r'([0-9a-f]*):\t([0-9a-f]*)[\t ]+([a-z.]*)\t?([^#]+)?(#[ ]*(.*))?',
                                  line)
-                instrs = [instr.group(1), instr.group(2), instr.group(3), instr.group(4), instr.group(6)]
+                pc = int(instr.group(1).strip(), 16)
+                instrs = [instr.group(2), instr.group(3), instr.group(4), instr.group(6)]
                 for i in range(len(instrs)):
                     if instrs[i] is None:
                         instrs[i] = ''
-                section_list.append(tuple(instrs))
-    return section_dict
+                    else:
+                        instrs[i] = instrs[i].strip()
+                instr_dict[pc] = instrs
+    return section_dict, instr_dict
 
 
 def print_section(func_dict: dict):
