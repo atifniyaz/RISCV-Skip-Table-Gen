@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+file_name="$(basename -- $1)"
+
+RV32="riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -static -mcmodel=medany -fvisibility=hidden -nostartfiles -T res/link.ld"
+
+python3 src/build_skip_table.py $1.c
+
+$RV32 $1.s
+
+python src/elf_to_rom.py
+
+
+mkdir -p out
+mv $1.s out/$file_name.s
+mv a.out out/$file_name.elf
+rm hex_file
+rm meminit.hex
+rm rom.txt
+
+scp SOC_ROM.sv socet44@asicfab:~/SoCET_Public/sram_controller/src
+
+rm SOC_ROM.sv
