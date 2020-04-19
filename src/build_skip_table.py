@@ -8,28 +8,6 @@ from typing import List
 from find_skippable_regions import create_skip_entries_and_assembly
 
 
-def gen_rv_test_rv32u():
-    return []
-    #     '\t.macro\tinit\n',
-    #     '\t.endm\n',
-    # ]
-
-
-def gen_rv_test_code_begin():
-    return []
-    #     '\t.align\t6\n',
-    # ]
-
-
-def gen_rv_test_code_end():
-    return [
-        '\tli\tx1,1\n',
-        '\tli\tx2,1\n',
-        '\tsw\tx2,0(x1)\n',
-        'done:\n',
-    ]
-
-
 def gen_store_sasa_from_mem_macro(mem_label, reg_offset, tempreg1, tempreg2):
     sparce_addr = '0x90000000'
     return [
@@ -41,7 +19,6 @@ def gen_store_sasa_from_mem_macro(mem_label, reg_offset, tempreg1, tempreg2):
         f'\tlw\t{tempreg2},4({tempreg2})\n',
         f'\tor\t{tempreg1},{tempreg1},{tempreg2}\n',
         f'\tli\t{tempreg2},{sparce_addr}\n',
- #       f'\tsrli\t{tempreg2},{tempreg2},12\n',
         f'\tsw\t{tempreg1},0({tempreg2})\n'
     ]
 
@@ -108,30 +85,17 @@ def __add_sasa_table_entries(assembly_lines, skip_entries):
 
     for line in assembly_lines:
         if line.strip() == 'main:': # Find "main:" in the .S file and append the init loop
-            out_assembly_lines.extend(gen_rv_test_rv32u())
-            out_assembly_lines.extend(gen_rv_test_code_begin())
             out_assembly_lines.append(line)
             out_assembly_lines.extend(SKIP_TABLE_INIT_LOOP)
             out_assembly_lines.append(f'\tli\tsp,0x83FC # Load in Stack Pointer\n')
         else:
             out_assembly_lines.append(line)
 
-    RV_TEST_DATA_END =  '.align 4; .global end_signature; end_signature:; .align 6; .global tohost; tohost:; ' \
-                        '.dword 0; .align 6; .global fromhost; fromhost:; .dword 0; .align 6; .global mtime; ' \
-                        'mtime:; .dword 0; .align 6; .global mtimecmp; mtimecmp:; .dword 0;'
-
     out_assembly_lines.append('#---------- BEGIN SPARCE GENERATED CODE ----------\n')
     out_assembly_lines.append('.data\n')
-    # out_assembly_lines.append('.align\t4\n')
-    # out_assembly_lines.append('.global\tbegin_signature\n')
-    # out_assembly_lines.append('begin_signature:\n')
     out_assembly_lines.append(f'{SASA_TABLE_LABEL}:\n')
     [out_assembly_lines.extend(get_skip_table_entry(entry)) for entry in skip_entries]
-    # out_assembly_lines.extend(
-    #     [f'{x.strip()}\n' for x in RV_TEST_DATA_END.split(';')]
-    # )
     out_assembly_lines.append('#----------- END SPARCE GENERATED CODE -----------\n')
-
     return out_assembly_lines
 
 
