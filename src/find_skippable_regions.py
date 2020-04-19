@@ -1,6 +1,5 @@
 import re
 import sys
-import io
 from typing import Dict, List
 
 
@@ -43,7 +42,7 @@ def build_compiled_code(header: List[str], sections: List[str], globs: Dict[str,
     for section in sections:
         output.append(f'{section}:\n')
         for op, values in globs[section]:
-            output.append(f'\t{op:7}{values}\n')
+            output.append(f'\t{op}\t{values}\n')
     return output
 
 
@@ -56,33 +55,40 @@ def find_skippable_regions(globs: Dict[str, tuple]) -> List[tuple]:
         lines = globs[sections[i]]
         for k in range(0, len(lines)):
             op, value = lines[k] # a0
-            if k != 0 and op == 'call':
+            if k > 1 and op == 'call':
                 if value == '__mulsi3':
                     globs[sections[i]] = lines[:k]
-                    sasa_skip_one = f'SASA_SKIP_{section_cnt}_0'
-                    sasa_skip_two = f'SASA_SKIP_{section_cnt}_1'
+                    sasa_skip_one = f'SASA_SKIP_{section_cnt}_MUL_A0'
+                    sasa_skip_two = f'SASA_SKIP_{section_cnt}_MUL_A1'
+                    sasa_skip_three = f'SASA_SKIP_{section_cnt}_MUL_JP'
 
                     globs[sasa_skip_one] = [
+                        ('nop', ''),
+                    ]
+
+                    globs[sasa_skip_two] = [
+                        ('nop', ''),
                         lines[k],
-                        ('j', sasa_skip_two),
+                        ('j', sasa_skip_three),
                         ('mv', 'a0,a1')
                     ]
 
-                    globs[sasa_skip_two] = lines[k+1:]
+                    globs[sasa_skip_three] = lines[k+1:]
 
+                    sections.insert(i+1, sasa_skip_three)
                     sections.insert(i+1, sasa_skip_two)
                     sections.insert(i+1, sasa_skip_one)
 
-                    skips.append((sasa_skip_one, 10, 0, 'SASA_COND_AND', 1))
-                    skips.append((sasa_skip_one, 11, 0, 'SASA_COND_AND', 2))
+                    skips.append((sasa_skip_two, 11, 0, 'SASA_COND_AND', 2))
+                    skips.append((sasa_skip_one, 10, 0, 'SASA_COND_AND', 4))
                 elif value == '__divsi3':
                     globs[sections[i]] = lines[:k]
-                    sasa_skip_one = f'SASA_SKIP_{section_cnt}_0'
-                    globs[sasa_skip_one] = lines[k:]
+                    sasa_skip_one = f'SASA_SKIP_{section_cnt}_DIV_A0'
+                    globs[sasa_skip_one] = [('nop', '')] + lines[k:]
 
                     sections.insert(i+1, sasa_skip_one)
 
-                    skips.append((sasa_skip_one, 10, 0, 'SASA_COND_AND', 1))
+                    skips.append((sasa_skip_one, 10, 0, 'SASA_COND_AND', 2))
                 section_cnt += 1
                 break
         i += 1
